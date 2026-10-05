@@ -1,0 +1,17 @@
+# Dependencies (never upload these, they are too big!)
+node_modules/
+.pnpm-store/
+
+# Production builds
+build/
+dist/
+.next/
+
+# Environment secrets (like API keys)
+.env
+.env.local
+.env.development.local
+
+# System files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peekaboo Monitor</title>
+  
+  <!-- This link tag represents the browser tab icon (favicon). JavaScript controls this dynamically. -->
+  <link id="favicon" rel="icon" type="image/svg+xml" href="">
+
+  <!-- Import the local face-api.js library file -->
+  <script src="face-api.min.js"></script>
+  
+  <style>
+    /* Basic setup: Dark theme dashboard, centers everything cleanly */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #121212;
+      color: #ffffff;
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+    }
+
+    /* Activation overlay screen to safely unlock browser audio policies */
+    #startOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(18, 18, 18, 0.95);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    #startOverlay h2 {
+      color: #00ffcc;
+      margin-bottom: 10px;
+    }
+
+    .header-group {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-top: 25px;
+      margin-bottom: 5px;
+    }
+
+    h1 {
+      margin: 0;
+      color: #00ffcc;
+      font-size: 2.5rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    /* Dashboard Eye Container and its 8-bit CSS blink animation cycle */
+    .eye-container {
+      width: 50px;
+      height: 50px;
+    }
+
+    .eye-icon {
+      width: 100%;
+      height: 100%;
+      fill: #00ffcc;
+      filter: drop-shadow(0 0 5px rgba(0, 255, 204, 0.4));
+      transform-origin: center bottom;
+      animation: dashboardBlink 4s infinite ease-in-out;
+    }
+
+    /* Shrinks the eye to 10% height to simulate a blink every 4 seconds */
+    @keyframes dashboardBlink {
+      0%, 90%, 94%, 100% { transform: scaleY(1); }
+      92%, 96% { transform: scaleY(0.1); }
+    }
+
+    p {
+      color: #777;
+      margin: 0 0 20px 0;
+      font-size: 0.9rem;
+    }
+
+    .container {
+      position: relative;
+      width: 500px;
+      height: 375px;
+      border: 3px solid #00ffcc;
+      border-radius: 12px;
+      overflow: hidden;
+      background-color: #000;
+    }
+
+    /* Video tag holding the mirrored raw camera input data streams */
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      transition: filter 0.3s ease;
+    }
+
+    /* Privacy setting rule triggered when checkbox is active */
+    .blurred {
+      filter: blur(20px);
+    }
+
+    /* Overlay canvas sitting flush above camera feed to paint face targeting rectangles */
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform: scaleX(-1);
+      pointer-events: none;
+    }
+
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    button {
+      background-color: #00ffcc;
+      color: #121212;
+      border: none;
+      padding: 14px 28px;
+      font-size: 1rem;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      text-transform: uppercase;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #00aa88;
+    }
+
+    button:disabled {
+      background-color: #222;
+      color: #555;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .status-bar {
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 12px 24px;
+      border-radius: 6px;
+      background-color: #1a1a1a;
+      border: 1px solid #333;
+      min-width: 250px;
+      text-align: center;
+    }
+
+    .toggle-group {
+      display: flex;
+      gap: 25px;
+      align-items: center;
+    }
+
+    .blur-control, .sensitivity-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      color: #aaa;
+      text-transform: uppercase;
+    }
+
+    /* UI High Alert Color State */
+    .alert {
+      background-color: #ff3333;
+      color: white;
+      border-color: #ff3333;
+      animation: barBlink 0.4s infinite alternate;
+    }
+
+    @keyframes barBlink {
+      from { opacity: 1; }
+      to { opacity: 0.7; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Gateway layer that forces user focus interaction to authorize system chimes -->
+  <div id="startOverlay">
+    <h2>Welcome to Peekaboo</h2>
+    <p>Click anywhere on this screen to launch camera and unlock audio alerts</p>
+  </div>
+
+  <div class="header-group">
+    <div class="eye-container">
+      <svg class="eye-icon" viewBox="0 0 16 16">
+        <path d="M2 1h1v3h-1z M7 0h1v3h-1z M13 1h1v3h-1z" />
+        <path d="M0 8h1v2h-1z M1 6h1v1h-1z M1 11h1v1h-1z M2 5h2v1h-2z M2 12h2v1h-2z M4 4h2v1h-2z M4 13h2v1h-2z M6 3h4v1h-4z M6 14h4v1h-4z M10 4h2v1h-2z M10 13h2v1h-2z M12 5h2v1h-2z M12 12h2v1h-2z M14 6h1v1h-1z M14 11h1v1h-1z M15 8h1v2h-1z M7 7h2v4h-2z" />
+      </svg>
+    </div>
+    <h1>Peekaboo</h1>
+  </div>
+  <p>Face Verification System</p>
+  
+  <div class="container">
+    <video id="webcam" autoplay playsinline muted></video>
+    <canvas id="overlay"></canvas>
+  </div>
+
+  <div class="controls">
+    <div class="btn-group">
+      <button id="registerBtn" disabled>Register My Face</button>
+      <div id="status" class="status-bar">Awaiting Authorization...</div>
+    </div>
+    
+    <div class="toggle-group">
+      <label class="blur-control">
+        <input type="checkbox" id="blurToggle"> Privacy Blur Camera Feed
+      </label>
+      
+      <div class="sensitivity-control">
+        <label for="senseSlider">Grace Frame:</label>
+        <input type="range" id="senseSlider" min="1" max="10" value="8">
+        <span id="senseValue">8</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connect your custom script engine -->
+  <script src="app.js"></script>
+
+</body>

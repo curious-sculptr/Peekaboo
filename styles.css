@@ -1,0 +1,15 @@
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  transition: filter 0.3s ease;
+  
+  /* 💡 ADD THESE FILTERS: Digitally counter-balances harsh backlighting */
+  filter: contrast(1.25) brightness(1.3) saturate(1.1);
+}
+
+/* Update your privacy blur class so it stacks correctly on top of the tuning filters */
+.blurred {
+  filter: contrast(1.25) brightness(1.3) saturate(1.1) blur(20px) !important;
+}
