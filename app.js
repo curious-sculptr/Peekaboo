@@ -52,7 +52,9 @@ startOverlay.addEventListener('click', () => {
 
 // 5. ASYNC MODEL PARSING
 // Fetches the mathematical AI model files from your local subfolder.
-const MODEL_URL = './models/';
+const MODEL_URL = window.location.hostname.includes('github.io') 
+  ? `${window.location.pathname.replace(/\/$/, '')}/models/` 
+  : './models/';
 async function loadModels() {
   try {
     statusDiv.textContent = 'Loading AI Models...';
